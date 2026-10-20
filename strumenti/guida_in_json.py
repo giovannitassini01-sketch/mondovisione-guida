@@ -4,9 +4,11 @@ Formato d'uscita (guida/<paese>.json.gz):
   {"v": 1, "creato": "...", "canali": {"Rai1.it": [[inizio, fine, "titolo", "descrizione"], ...]}}
 Tempi in secondi (epoch). Si tengono i programmi dalle ultime 3 ore alle prossime 36,
 e la descrizione si taglia a 180 caratteri: la TV scarica poco e legge in fretta.
+Un programma senza fine (l'XMLTV lo permette) finisce quando inizia il successivo.
 
 Uso: python strumenti/guida_in_json.py <cartella con i .xml> <cartella d'uscita> [paesi validi.json]
 """
+import bisect
 import collections
 import datetime
 import gzip
@@ -17,6 +19,7 @@ import time
 import xml.etree.ElementTree as ET
 
 PRIMA, DOPO = 3 * 3600, 36 * 3600
+DURATA_MAX = 12 * 3600  # senza fine e col successivo troppo lontano: buco nei dati, si scarta
 
 
 def tempo(s):
@@ -40,19 +43,22 @@ def main():
     uscita = pathlib.Path(sys.argv[2])
     adesso = int(time.time())
     per_canale = collections.defaultdict(dict)
+    inizi = collections.defaultdict(set)
     for f in sorted(sorgenti.glob("*.xml")):
         for _, el in ET.iterparse(f, events=("end",)):
             if el.tag != "programme":
                 continue
-            try:
-                inizio, fine = tempo(el.get("start")), tempo(el.get("stop"))
-            except (TypeError, ValueError):
-                el.clear()
-                continue
-            if fine < adesso - PRIMA or inizio > adesso + DOPO or fine <= inizio:
-                el.clear()
-                continue
             canale = (el.get("channel") or "").split("@")[0]
+            try:
+                inizio = tempo(el.get("start"))
+                fine = tempo(el.get("stop")) if el.get("stop") else None
+            except (AttributeError, ValueError):
+                el.clear()
+                continue
+            inizi[canale].add(inizio)
+            if inizio > adesso + DOPO or (fine is not None and (fine < adesso - PRIMA or fine <= inizio)):
+                el.clear()
+                continue
             titolo = testo(el, "title")
             if canale and titolo:
                 desc = testo(el, "desc")
@@ -61,8 +67,19 @@ def main():
                 # chiave per inizio: se due siti danno lo stesso canale, vince il primo
                 per_canale[canale].setdefault(inizio, [inizio, fine, titolo] + ([desc] if desc else []))
             el.clear()
+    for canale, programmi in per_canale.items():
+        successivi = sorted(inizi[canale])
+        for k in [k for k, p in programmi.items() if p[1] is None]:
+            i = bisect.bisect_right(successivi, k)
+            fine = successivi[i] if i < len(successivi) else None
+            if fine is None or fine - k > DURATA_MAX or fine < adesso - PRIMA:
+                del programmi[k]
+            else:
+                programmi[k][1] = fine
     per_paese = collections.defaultdict(dict)
     for canale, programmi in per_canale.items():
+        if not programmi:
+            continue
         paese = canale.rsplit(".", 1)[-1].upper()
         per_paese[paese][canale] = [programmi[k] for k in sorted(programmi)]
     uscita.mkdir(parents=True, exist_ok=True)
@@ -71,7 +88,7 @@ def main():
         dati = json.dumps({"v": 1, "creato": creato, "canali": canali}, ensure_ascii=False, separators=(",", ":"))
         (uscita / f"{paese.lower()}.json.gz").write_bytes(gzip.compress(dati.encode("utf-8"), 9))
     totale = sum(len(v) for c in per_paese.values() for v in c.values())
-    print(f"{len(per_canale)} canali, {totale} programmi, {len(per_paese)} paesi in {uscita}")
+    print(f"{sum(len(c) for c in per_paese.values())} canali, {totale} programmi, {len(per_paese)} paesi in {uscita}")
 
 
 if __name__ == "__main__":

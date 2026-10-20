@@ -1,0 +1,69 @@
+name: Giro della notte
+
+# Ogni notte: elenco dei canali (solo https) e guida TV dei prossimi due giorni,
+# pubblicati su GitHub Pages per l'app Mondovisione.
+on:
+  schedule:
+    - cron: "40 1 * * *"   # 02:40 o 03:40 in Italia
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: giro-della-notte
+  cancel-in-progress: false
+
+jobs:
+  giro:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    environment:
+      name: github-pages
+      url: ${{ steps.pubblica.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Dati pubblici di iptv-org
+        run: python3 strumenti/scarica_api.py api
+
+      - name: Programma delle guide di iptv-org
+        run: |
+          git clone --depth 1 https://github.com/iptv-org/epg.git epg
+          cd epg
+          npm ci --ignore-scripts --no-audit --no-fund
+          HTTP_PROXY=http://127.0.0.1:9 http_proxy=http://127.0.0.1:9 npm run api:load
+
+      - name: Siti delle guide
+        run: python3 strumenti/scegli_siti_guida.py api epg canali_guida.xml
+
+      - name: Elenco dei canali
+        run: python3 strumenti/prepara_canali.py api dati canali_guida.xml pubblico/canali.tsv.gz
+
+      - name: Guide, sito per sito
+        run: bash strumenti/scarica_guide.sh epg canali_guida.xml xml
+
+      - name: Guide nel formato della TV
+        run: python3 strumenti/guida_in_json.py xml pubblico/guida
+
+      - name: Salva i numeri dei canali
+        run: |
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > dati/ultimo_giro.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dati/numeri_stato.json dati/ultimo_giro.txt
+          git diff --cached --quiet || git commit -m "Giro della notte"
+          git push
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pubblico
+      - id: pubblica
+        uses: actions/deploy-pages@v4

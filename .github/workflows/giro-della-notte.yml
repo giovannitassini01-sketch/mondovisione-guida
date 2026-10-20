@@ -41,7 +41,7 @@ jobs:
           HTTP_PROXY=http://127.0.0.1:9 http_proxy=http://127.0.0.1:9 npm run api:load
 
       - name: Siti delle guide
-        run: python3 strumenti/scegli_siti_guida.py api epg canali_guida.xml
+        run: python3 strumenti/scegli_siti_guida.py api epg canali_guida.xml dati
 
       - name: Elenco dei canali
         run: python3 strumenti/prepara_canali.py api dati canali_guida.xml pubblico/canali.tsv.gz
@@ -57,7 +57,7 @@ jobs:
           date -u +"%Y-%m-%dT%H:%M:%SZ" > dati/ultimo_giro.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dati/numeri_stato.json dati/ultimo_giro.txt
+          git add dati/numeri_stato.json dati/ultimo_giro.txt dati/freetv_italia.m3u8
           git diff --cached --quiet || git commit -m "Giro della notte"
           git push
 

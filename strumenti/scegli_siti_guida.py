@@ -5,7 +5,7 @@ Regole: solo siti verdi in SITES.md e non rotti; nessun sito il cui programma us
 http (mai traffico in chiaro); per l'Italia prima le fonti delle emittenti; i siti che
 consumano gigabyte di memoria solo se non c'e' altro.
 
-Uso: python strumenti/scegli_siti_guida.py <cartella api> <cartella epg> <uscita canali_guida.xml>
+Uso: python strumenti/scegli_siti_guida.py <cartella api> <cartella epg> <uscita canali_guida.xml> [cartella dati]
 """
 import collections
 import json
@@ -13,6 +13,9 @@ import pathlib
 import re
 import sys
 import xml.sax.saxutils as sx
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import freetv  # noqa: E402
 
 SITI_PREFERITI = {
     "IT": ["raiplay.it", "mediasetinfinity.mediaset.it", "guidatv.sky.it", "tv.blue.ch", "guida.tv", "teleboy.ch"],
@@ -28,6 +31,18 @@ def main():
     J = lambda n: json.load(open(api / f"{n}.json", encoding="utf-8"))
     canali = {c["id"]: c for c in J("channels")}
     con_https = {s["channel"] for s in J("streams") if s.get("channel") and s["url"].lower().startswith("https://")}
+    if len(sys.argv) > 4:
+        # anche i canali italiani che arrivano da Free-TV (non i privati)
+        dati = pathlib.Path(sys.argv[4])
+        lista = api / "freetv_italia.m3u8" if (api / "freetv_italia.m3u8").exists() else dati / "freetv_italia.m3u8"
+        if lista.exists():
+            lcn = json.load(open(dati / "numeri_lcn.json", encoding="utf-8"))["numeri"]
+            bloccati = {b["channel"] for b in J("blocklist")}
+            canali_it = [c for c in canali.values() if c["country"] == "IT"]
+            for v, cid, nuovo in freetv.abbina(freetv.leggi(lista.read_text(encoding="utf-8", errors="replace")),
+                                               canali_it, lcn, set(canali)):
+                if not nuovo and not freetv.privato(cid, v["url"], bloccati):
+                    con_https.add(cid)
     sites_md = (epg / "SITES.md").read_text(encoding="utf-8")
     verdi = set(re.findall(r'<a href="sites/([^"]+)">[^<]+</a></td><td align="right">\d+</td><td align="center">🟢', sites_md))
     guide = [g for g in J("guides") if g.get("channel") in con_https and g.get("channel") in canali]

@@ -13,6 +13,9 @@ import pathlib
 import re
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import freetv  # noqa: E402
+
 ITALIA_SENZA_LCN = 300
 CATEGORIE_MANCANTI = {"RaiStoria.it": ["culture", "documentary"]}
 FORMATI = {"PNG": 0, "WebP": 1, "JPEG": 2, "SVG": 3}
@@ -52,6 +55,65 @@ def numera(canali, lcn, stato):
             c["num"] = assegnati[c["id"]]
         nuovo[paese] = {**vecchi, **assegnati}
     return nuovo
+
+
+def lista_freetv(api, dati, canali_api, lcn, bloccati):
+    """La lista di stanotte se e' sana, altrimenti l'ultima copia buona (che si aggiorna qui,
+    senza le voci private: il progetto e' pubblico)."""
+    fresca, copia = api / "freetv_italia.m3u8", dati / "freetv_italia.m3u8"
+    if fresca.exists():
+        testo = fresca.read_text(encoding="utf-8", errors="replace")
+        if len(freetv.leggi(testo)) >= 100:
+            canali_it = [c for c in canali_api.values() if c["country"] == "IT"]
+            copia.write_text(freetv.senza_privati(testo, canali_it, lcn, set(canali_api), bloccati), encoding="utf-8")
+            return testo
+        print("lista Free-TV di stanotte sospetta: uso l'ultima copia buona")
+    return copia.read_text(encoding="utf-8") if copia.exists() else ""
+
+
+def unisci_freetv(api, dati, canali, canali_api, bloccati, lcn, pacchetto, loghi, verificati, flussi_buoni, con_guida):
+    """Canali italiani ufficiali da Free-TV: link di riserva per chi c'e', canali nuovi per chi manca.
+    Mai i «privati» (Sky e canali tolti con DMCA): quelli stanno solo dentro l'app."""
+    testo = lista_freetv(api, dati, canali_api, lcn, bloccati)
+    if not testo:
+        return
+    dmca = {cid for cid in bloccati}
+    tutti = set(canali_api)
+    canali_it = [c for c in canali_api.values() if c["country"] == "IT"]
+    per_id = {c["id"]: c for c in canali}
+    usati = set(lcn.values())
+    aggiunti = 0
+    for v, cid, nuovo in freetv.abbina(freetv.leggi(testo), canali_it, lcn, tutti):
+        if freetv.privato(cid, v["url"], dmca):
+            continue
+        tipo, browser = flussi_buoni.get(v["url"], ("h", "0"))
+        flusso = {"url": v["url"], "user_agent": None, "referrer": None, "quality": None,
+                  "labels": ["Geo-blocked"] if v["estero_no"] else [], "_tipo": tipo, "_browser": browser}
+        if cid in per_id:
+            if v["url"] not in {s["url"] for s in per_id[cid]["s"]}:
+                per_id[cid]["s"].append(flusso)
+        else:
+            info = canali_api.get(cid, {})
+            voce = {"id": cid, "n": v["nome"] if nuovo else info.get("name", v["nome"]), "p": "IT",
+                    "c": freetv.categoria_ipotizzata(v["nome"]) if nuovo else (info.get("categories") or []),
+                    "s": [flusso], "ok": 1 if cid in verificati else 0,
+                    "a": [] if nuovo else [a for a in info.get("alt_names") or [] if a != info.get("name")],
+                    "epg": 1 if cid in con_guida else 0}
+            if cid in pacchetto:
+                voce["logo"], (voce["pl"], voce["col"]) = cid + ".webp", pacchetto[cid]
+            else:
+                url_logo = next((l["url"] for l in loghi.get(cid, []) if l["url"].lower().startswith("https://")), None)
+                url_logo = url_logo or (v["logo"] if (v["logo"] or "").lower().startswith("https://") else None)
+                if url_logo:
+                    voce["logo"] = url_logo
+            canali.append(voce)
+            per_id[cid] = voce
+            aggiunti += 1
+        regionale = v["num"] and (10 <= v["num"] <= 19 or 71 <= v["num"] <= 99)  # numeri locali, per regione
+        if v["num"] and not regionale and cid not in lcn and v["num"] not in usati:
+            lcn[cid] = v["num"]
+            usati.add(v["num"])
+    print(f"Free-TV: {aggiunti} canali aggiunti, link di riserva per gli altri")
 
 
 def main():
@@ -111,6 +173,7 @@ def main():
                 voce["logo"] = candidati[0]["url"]
         canali.append(voce)
 
+    unisci_freetv(api, dati, canali, canali_api, bloccati, lcn, pacchetto, loghi, verificati, flussi_buoni, con_guida)
     nuovo_stato = numera(canali, lcn, stato)
     canali.sort(key=lambda c: (c["p"] != "IT", c["p"], c["num"]))
     creato = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -124,7 +187,8 @@ def main():
                               "|".join(pulito(a) for a in c["a"])]))
         for s in c["s"]:
             q = (s.get("quality") or "").rstrip("pi")
-            tipo, browser = flussi_buoni.get(s["url"], ("d" if ".mpd" in s["url"].lower() else "h", "0"))
+            tipo, browser = flussi_buoni.get(s["url"], (s.get("_tipo") or ("d" if ".mpd" in s["url"].lower() else "h"),
+                                                          s.get("_browser") or "0"))
             out.append("\t".join(["F", pulito(s["url"]), pulito(s.get("user_agent")), pulito(s.get("referrer")), browser,
                                   q if q.isdigit() else "", tipo, ",".join(s.get("labels") or [])]))
     uscita.parent.mkdir(parents=True, exist_ok=True)

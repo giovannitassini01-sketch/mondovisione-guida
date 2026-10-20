@@ -17,7 +17,11 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import freetv  # noqa: E402
 
 ITALIA_SENZA_LCN = 300
-CATEGORIE_MANCANTI = {"RaiStoria.it": ["culture", "documentary"]}
+# canali senza categoria in iptv-org a cui la categoria si sa (da Wikipedia, sezione «Contenuti»)
+CATEGORIE_MANCANTI = {"RaiStoria.it": ["culture", "documentary"], "Rai5.it": ["culture", "documentary"],
+                      "Rai4.it": ["entertainment"], "Rai4K.it": ["entertainment"], "RaiPremium.it": ["entertainment"],
+                      "RealTime.it": ["entertainment", "lifestyle"], "RaiGulp.it": ["kids"],
+                      "R101TV.it": ["music"], "RDSSocialTV.it": ["music"]}
 FORMATI = {"PNG": 0, "WebP": 1, "JPEG": 2, "SVG": 3}
 
 
@@ -159,8 +163,6 @@ def main():
             return int(q) if q.isdigit() else 0
         flussi.sort(key=lambda s: (s["url"] not in flussi_buoni, -qualita(s)))
         categorie = c.get("categories") or CATEGORIE_MANCANTI.get(cid, [])
-        if not categorie and c["country"] == "IT" and lcn.get(cid, 99) <= 9:
-            categorie = ["general"]
         voce = {"id": cid, "n": c["name"], "p": c["country"], "c": categorie, "s": flussi,
                 "ok": 1 if cid in verificati else 0, "a": [a for a in c.get("alt_names") or [] if a != c["name"]],
                 "epg": 1 if cid in con_guida else 0}
@@ -174,6 +176,10 @@ def main():
         canali.append(voce)
 
     unisci_freetv(api, dati, canali, canali_api, bloccati, lcn, pacchetto, loghi, verificati, flussi_buoni, con_guida)
+    for c in canali:
+        if c["p"] == "IT" and not c["c"]:
+            # iptv-org non da' nessuna categoria a Rai 1, Rete 4 e a tante locali: le radio in musica, il resto generalisti
+            c["c"] = CATEGORIE_MANCANTI.get(c["id"]) or freetv.categoria_ipotizzata(c["n"])
     nuovo_stato = numera(canali, lcn, stato)
     canali.sort(key=lambda c: (c["p"] != "IT", c["p"], c["num"]))
     creato = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

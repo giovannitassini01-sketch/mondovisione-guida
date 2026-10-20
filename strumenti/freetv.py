@@ -88,7 +88,9 @@ def abbina(voci, canali_it, lcn, tutti_gli_id):
     """Ritorna [(voce, id_canale, nuovo)] per le voci utilizzabili.
 
     canali_it puo' contenere anche i canali che iptv-org segna come chiusi: servono a
-    riconoscere per nome Sky TG24 o Mediaset Extra; a parita' vincono quelli aperti."""
+    riconoscere per nome Sky TG24 o Mediaset Extra; a parita' vincono quelli aperti.
+    Un canale chiuso che non e' piu' nella tabella dei numeri lascia il link a chi ha preso
+    il suo numero: Rai Scuola, chiusa il 1/10/2026, sul 57 ora trasmette Italiana."""
     canali_it = sorted(canali_it, key=lambda c: bool(c.get("closed")))
     per_numero = {n: cid for cid, n in lcn.items()}
     nomi, corti, per_id = {}, {}, {}
@@ -109,6 +111,8 @@ def abbina(voci, canali_it, lcn, tutti_gli_id):
             if any(simili(v["nome"], n) for n in [c["name"], *(c.get("alt_names") or [])]):
                 cid = candidato
         cid = cid or nomi.get(norma(v["nome"])) or corti.get(norma_corta(v["nome"]))
+        if cid and per_id[cid].get("closed") and cid not in lcn and per_numero.get(v["num"]) in per_id:
+            cid = per_numero[v["num"]]
         nuovo = cid is None
         if nuovo:
             chiave = norma(v["nome"])

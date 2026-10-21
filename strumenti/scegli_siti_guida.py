@@ -32,16 +32,16 @@ def main():
     canali = {c["id"]: c for c in J("channels")}
     con_https = {s["channel"] for s in J("streams") if s.get("channel") and s["url"].lower().startswith("https://")}
     if len(sys.argv) > 4:
-        # anche i canali italiani che arrivano da Free-TV (non i privati)
+        # anche i canali italiani che arrivano da Free-TV, privati compresi: la guida e' solo l'orario
+        # dei programmi (iptv-org la pubblica per tutti), i loro link restano dentro l'app
         dati = pathlib.Path(sys.argv[4])
         lista = api / "freetv_italia.m3u8" if (api / "freetv_italia.m3u8").exists() else dati / "freetv_italia.m3u8"
         if lista.exists():
             lcn = json.load(open(dati / "numeri_lcn.json", encoding="utf-8"))["numeri"]
-            bloccati = {b["channel"] for b in J("blocklist")}
             canali_it = [c for c in canali.values() if c["country"] == "IT"]
             for v, cid, nuovo in freetv.abbina(freetv.leggi(lista.read_text(encoding="utf-8", errors="replace")),
                                                canali_it, lcn, set(canali)):
-                if not nuovo and not freetv.privato(cid, v["url"], bloccati):
+                if not nuovo:
                     con_https.add(cid)
     sites_md = (epg / "SITES.md").read_text(encoding="utf-8")
     verdi = set(re.findall(r'<a href="sites/([^"]+)">[^<]+</a></td><td align="right">\d+</td><td align="center">🟢', sites_md))

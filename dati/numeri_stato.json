@@ -1777,6 +1777,7 @@
 "RTL.de": 241,
 "RTLSuper.de": 242,
 "RTLZwei.de": 243,
+"RTLup.de": 372,
 "Radio21TV.de": 354,
 "RadioBremenFernsehen.de": 355,
 "RadioWeserTVBremen.de": 232,
@@ -1848,6 +1849,7 @@
 "Unserding.de": 368,
 "VOX.de": 298,
 "VolksmusikTV.de": 297,
+"Voxup.de": 373,
 "WDR1Live.de": 299,
 "WDRFernsehen.de": 300,
 "WELT.de": 301,
@@ -2563,6 +2565,7 @@
 "Europe1TV.fr": 46,
 "Eurosport1.fr": 47,
 "Eurosport2.fr": 48,
+"Eurosport4K.fr": 154,
 "EvandisGospelTV.fr": 49,
 "FashionTVEurope.fr": 129,
 "FashionTVParisLOriginal.fr": 50,
@@ -3139,6 +3142,7 @@
 "OireachtasTVCommitteeRoom4.ie": 7,
 "OireachtasTVDailEireann.ie": 8,
 "OireachtasTVSeanadEireann.ie": 9,
+"SkyNews.ie": 10,
 "TG4.ie": 1
 },
 "IL": {
@@ -3651,6 +3655,7 @@
 "Pitaara.in": 387,
 "PitaaraComedy.in": 748,
 "PocketFilms.in": 389,
+"Pogo.in": 760,
 "PolimerNews.in": 390,
 "PolimerTV.in": 391,
 "PowerTV.in": 392,
@@ -6078,6 +6083,7 @@
 "BollywoodHD.ro": 20,
 "BoomTV.ro": 21,
 "BucovinaTV.ro": 22,
+"Chefilacutite.ro": 161,
 "Chefiro.ro": 23,
 "CineWow.ro": 136,
 "CinemaratonPlus.ro": 24,
@@ -8283,6 +8289,7 @@
 "Lesfillesdacote.us": 559,
 "LesorelleMcLeod.us": 552,
 "LexTV.us": 561,
+"Lifetime.us": 1515,
 "LifetimeLatinAmerica.us": 563,
 "LifevisionTV.us": 564,
 "LindellTV.us": 565,
@@ -9310,7 +9317,8 @@
 "VinhLongTV1.vn": 54,
 "VinhLongTV2.vn": 55,
 "VinhLongTV3.vn": 56,
-"VinhLongTV4.vn": 57
+"VinhLongTV4.vn": 57,
+"VinhLongTV5.vn": 91
 },
 "WS": {
 "TV3.ws": 1

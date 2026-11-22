@@ -1910,6 +1910,7 @@
 "DRRamasjang.dk": 4,
 "DRTV.dk": 1,
 "TV2Bornholm.dk": 2,
+"TV2Fyn.dk": 8,
 "TVStorbyen.dk": 7,
 "TVfromtheDanishParliament.dk": 3
 },
@@ -2405,6 +2406,7 @@
 "La2Canarias.es": 192,
 "La2Catalunya.es": 193,
 "La8Mediterraneo.es": 77,
+"LaSeptima.es": 244,
 "LaSexta.es": 236,
 "LaUrbanTV.es": 194,
 "LancelotTV.es": 78,
@@ -2758,7 +2760,8 @@
 "ImediTV.ge": 7,
 "MtavariArkhi.ge": 10,
 "ObieqtiviTV.ge": 11,
-"PalitraNews.ge": 8
+"PalitraNews.ge": 8,
+"RioniTV.ge": 12
 },
 "GF": {
 "TelePeyi.gf": 1
@@ -5835,12 +5838,15 @@
 "RikuTV.pe": 147,
 "RumbaMixTV.pe": 87,
 "RumboMineroTV.pe": 156,
+"SanjuaneraTV.pe": 163,
+"SelvaTV.pe": 164,
 "SenalPeruTV.pe": 148,
 "SiscomTV.pe": 88,
 "SolTV.pe": 149,
 "SolarTelevision.pe": 89,
 "SqalaTV.pe": 150,
 "StudioPascoTV.pe": 90,
+"SullanaTV.pe": 165,
 "SuperCanal.pe": 91,
 "TVBellaAsuncion.pe": 102,
 "TVCosmos.pe": 103,
@@ -5863,6 +5869,7 @@
 "TopTV.pe": 99,
 "Trivu.pe": 100,
 "TurboMixRadioTV.pe": 101,
+"USILTV.pe": 166,
 "USMPTV.pe": 154,
 "UcayalinadeTelevision.pe": 111,
 "UchuTV.pe": 153,
@@ -6332,6 +6339,7 @@
 "PrimaSport2.ro": 120,
 "PrimaSport3.ro": 121,
 "PrimaSport4.ro": 122,
+"PrimaSport5.ro": 176,
 "PrimaSportPPV1.ro": 172,
 "PrimaSportPPV2.ro": 173,
 "QuantumTV.ro": 137,
@@ -7486,6 +7494,7 @@
 "beINSportsHaber.tr": 20
 },
 "TT": {
+"AtlanticTV.tt": 8,
 "BizzTV.tt": 1,
 "RiddimHopeTV.tt": 2,
 "SankhyaTV.tt": 3,
